@@ -9,22 +9,6 @@
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
-      <el-form-item label="创建时间" prop="createdAt">
-        <el-date-picker clearable
-          v-model="queryParams.createdAt"
-          type="date"
-          value-format="yyyy-MM-dd"
-          placeholder="请选择创建时间">
-        </el-date-picker>
-      </el-form-item>
-      <el-form-item label="更新时间" prop="updatedAt">
-        <el-date-picker clearable
-          v-model="queryParams.updatedAt"
-          type="date"
-          value-format="yyyy-MM-dd"
-          placeholder="请选择更新时间">
-        </el-date-picker>
-      </el-form-item>
       <el-form-item>
         <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
         <el-button icon="el-icon-refresh" size="mini" @click="resetQuery">重置</el-button>
@@ -64,16 +48,7 @@
           v-hasPermi="['jq:areas:remove']"
         >删除</el-button>
       </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="warning"
-          plain
-          icon="el-icon-download"
-          size="mini"
-          @click="handleExport"
-          v-hasPermi="['jq:areas:export']"
-        >导出</el-button>
-      </el-col>
+      
       <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
@@ -81,14 +56,35 @@
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="区域ID" align="center" prop="areaId" />
       <el-table-column label="区域名称" align="center" prop="areaName" />
+      <el-table-column label="城市信息" align="center" prop="cities" width="300">
+        <template slot-scope="scope">
+          <div v-if="scope.row.cities && scope.row.cities.length">
+            <div v-for="(city, index) in scope.row.cities" :key="index" class="city-info">
+              <div class="city-name">{{ city.cityName }}</div>
+              <div class="address-list">
+                <el-tag
+                  v-for="(address, addrIndex) in city.addresses"
+                  :key="addrIndex"
+                  size="mini"
+                  type="info"
+                  class="address-tag"
+                >
+                  {{ address }}
+                </el-tag>
+              </div>
+            </div>
+          </div>
+          <span v-else>暂无城市信息</span>
+        </template>
+      </el-table-column>
       <el-table-column label="创建时间" align="center" prop="createdAt" width="180">
         <template slot-scope="scope">
-          <span>{{ parseTime(scope.row.createdAt, '{y}-{m}-{d}') }}</span>
+          <span>{{ parseTime(scope.row.createdAt, '{y}-{m}-{d} {h}:{i}:{s}') }}</span>
         </template>
       </el-table-column>
       <el-table-column label="更新时间" align="center" prop="updatedAt" width="180">
         <template slot-scope="scope">
-          <span>{{ parseTime(scope.row.updatedAt, '{y}-{m}-{d}') }}</span>
+          <span>{{ parseTime(scope.row.updatedAt, '{y}-{m}-{d} {h}:{i}:{s}') }}</span>
         </template>
       </el-table-column>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
@@ -120,28 +116,88 @@
     />
 
     <!-- 添加或修改区域对话框 -->
-    <el-dialog :title="title" :visible.sync="open" width="500px" append-to-body>
+    <el-dialog :title="title" :visible.sync="open" width="800px" append-to-body>
       <el-form ref="form" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="区域名称" prop="areaName">
           <el-input v-model="form.areaName" placeholder="请输入区域名称" />
         </el-form-item>
-        <el-form-item label="创建时间" prop="createdAt">
-          <el-date-picker clearable
-            v-model="form.createdAt"
-            type="date"
-            value-format="yyyy-MM-dd"
-            placeholder="请选择创建时间">
-          </el-date-picker>
-        </el-form-item>
-        <el-form-item label="更新时间" prop="updatedAt">
-          <el-date-picker clearable
-            v-model="form.updatedAt"
-            type="date"
-            value-format="yyyy-MM-dd"
-            placeholder="请选择更新时间">
-          </el-date-picker>
+        
+        <!-- 城市和地址模块 -->
+        <el-form-item label="城市管理">
+          <div class="city-module">
+            <div class="city-item" v-for="(city, index) in form.cities" :key="index">
+              <div class="city-header">
+                <span>城市 {{ index + 1 }}</span>
+                <el-button
+                  type="danger"
+                  icon="el-icon-delete"
+                  size="mini"
+                  plain
+                  @click="removeCity(index)"
+                  v-if="form.cities.length > 1"
+                >删除</el-button>
+              </div>
+              
+              <el-form-item
+                :prop="`cities.${index}.cityId`"
+                :rules="{ required: true, message: '请选择城市', trigger: 'change' }"
+                label="选择城市"
+                label-width="80px"
+              >
+                <el-select 
+                  v-model="city.cityId" 
+                  placeholder="请选择城市"
+                  clearable
+                  filterable
+                  style="width: 100%"
+                >
+                  <el-option
+                    v-for="item in citiesOptions"
+                    :key="item.cityId"
+                    :label="item.cityName"
+                    :value="item.cityId"
+                  />
+                </el-select>
+              </el-form-item>
+              
+              <el-form-item label="地址列表" label-width="80px">
+                <div class="address-list">
+                  <div class="address-item" v-for="(address, addrIndex) in city.addresses" :key="addrIndex">
+                    <el-input
+                      v-model="city.addresses[addrIndex]"
+                      placeholder="请输入地址"
+                      style="width: 80%; margin-right: 10px;"
+                    />
+                    <el-button
+                      type="danger"
+                      icon="el-icon-delete"
+                      size="mini"
+                      @click="removeAddress(index, addrIndex)"
+                      v-if="city.addresses.length > 1"
+                    ></el-button>
+                  </div>
+                  <el-button
+                    type="primary"
+                    icon="el-icon-plus"
+                    size="mini"
+                    @click="addAddress(index)"
+                    style="margin-top: 10px;"
+                  >添加地址</el-button>
+                </div>
+              </el-form-item>
+            </div>
+            
+            <el-button
+              type="primary"
+              icon="el-icon-plus"
+              size="mini"
+              @click="addCity"
+              style="margin-top: 15px;"
+            >添加城市</el-button>
+          </div>
         </el-form-item>
       </el-form>
+      
       <div slot="footer" class="dialog-footer">
         <el-button type="primary" @click="submitForm">确 定</el-button>
         <el-button @click="cancel">取 消</el-button>
@@ -152,6 +208,7 @@
 
 <script>
 import { listAreas, getAreas, delAreas, addAreas, updateAreas } from "@/api/jq/areas"
+import { listCities } from "@/api/jq/cities"
 
 export default {
   name: "Areas",
@@ -171,6 +228,8 @@ export default {
       total: 0,
       // 区域表格数据
       areasList: [],
+      // 城市选项
+      citiesOptions: [],
       // 弹出层标题
       title: "",
       // 是否显示弹出层
@@ -179,28 +238,30 @@ export default {
       queryParams: {
         pageNum: 1,
         pageSize: 10,
-        areaName: null,
-        createdAt: null,
-        updatedAt: null
+        areaName: null
       },
       // 表单参数
-      form: {},
+      form: {
+        areaId: null,
+        areaName: null,
+        cities: [
+          {
+            cityId: null,
+            addresses: [""]
+          }
+        ]
+      },
       // 表单校验
       rules: {
         areaName: [
           { required: true, message: "区域名称不能为空", trigger: "blur" }
-        ],
-        createdAt: [
-          { required: true, message: "创建时间不能为空", trigger: "blur" }
-        ],
-        updatedAt: [
-          { required: true, message: "更新时间不能为空", trigger: "blur" }
         ]
       }
     }
   },
   created() {
     this.getList()
+    this.getCitiesList()
   },
   methods: {
     /** 查询区域列表 */
@@ -210,6 +271,12 @@ export default {
         this.areasList = response.rows
         this.total = response.total
         this.loading = false
+      })
+    },
+    /** 获取城市列表 */
+    getCitiesList() {
+      listCities({ pageNum: 1, pageSize: 1000 }).then(response => {
+        this.citiesOptions = response.rows
       })
     },
     // 取消按钮
@@ -222,10 +289,13 @@ export default {
       this.form = {
         areaId: null,
         areaName: null,
-        createdAt: null,
-        updatedAt: null
+        cities: [
+          {
+            cityId: null,
+            addresses: [""]
+          }
+        ]
       }
-      this.resetForm("form")
     },
     /** 搜索按钮操作 */
     handleQuery() {
@@ -255,14 +325,62 @@ export default {
       const areaId = row.areaId || this.ids
       getAreas(areaId).then(response => {
         this.form = response.data
+        // 确保cities数组存在且不为空
+        if (!this.form.cities || this.form.cities.length === 0) {
+          this.form.cities = [{
+            cityId: null,
+            addresses: [""]
+          }]
+        }
         this.open = true
         this.title = "修改区域"
       })
+    },
+    // 添加城市
+    addCity() {
+      this.form.cities.push({
+        cityId: null,
+        addresses: [""]
+      })
+    },
+    // 删除城市
+    removeCity(index) {
+      this.form.cities.splice(index, 1)
+    },
+    // 添加地址
+    addAddress(cityIndex) {
+      this.form.cities[cityIndex].addresses.push("")
+    },
+    // 删除地址
+    removeAddress(cityIndex, addrIndex) {
+      this.form.cities[cityIndex].addresses.splice(addrIndex, 1)
     },
     /** 提交按钮 */
     submitForm() {
       this.$refs["form"].validate(valid => {
         if (valid) {
+          // 验证每个城市是否已选择
+          let citiesValid = true
+          for (let i = 0; i < this.form.cities.length; i++) {
+            if (!this.form.cities[i].cityId) {
+              this.$message.error(`请选择第${i + 1}个城市`)
+              citiesValid = false
+              break
+            }
+            
+            // 验证每个地址是否为空
+            for (let j = 0; j < this.form.cities[i].addresses.length; j++) {
+              if (!this.form.cities[i].addresses[j]) {
+                this.$message.error(`第${i + 1}个城市的第${j + 1}个地址不能为空`)
+                citiesValid = false
+                break
+              }
+            }
+            if (!citiesValid) break
+          }
+          
+          if (!citiesValid) return
+          
           if (this.form.areaId != null) {
             updateAreas(this.form).then(response => {
               this.$modal.msgSuccess("修改成功")
@@ -298,3 +416,64 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.app-container {
+  padding: 20px;
+}
+
+.city-module {
+  border: 1px solid #e6ebf5;
+  border-radius: 4px;
+  padding: 15px;
+  margin-bottom: 15px;
+}
+
+.city-item {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px dashed #e6ebf5;
+}
+
+.city-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.city-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  font-weight: bold;
+  color: #409EFF;
+}
+
+.address-list {
+  margin-left: 20px;
+}
+
+.address-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+/* 城市信息样式 */
+.city-info {
+  margin-bottom: 10px;
+  padding: 8px;
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+}
+
+.city-name {
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #409EFF;
+}
+
+.address-tag {
+  margin: 2px;
+}
+</style>

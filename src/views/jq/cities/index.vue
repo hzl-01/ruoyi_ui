@@ -48,16 +48,7 @@
           v-hasPermi="['jq:cities:remove']"
         >删除</el-button>
       </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="warning"
-          plain
-          icon="el-icon-download"
-          size="mini"
-          @click="handleExport"
-          v-hasPermi="['jq:cities:export']"
-        >导出</el-button>
-      </el-col>
+      
       <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
@@ -67,12 +58,12 @@
       <el-table-column label="城市名称" align="center" prop="cityName" />
       <el-table-column label="创建时间" align="center" prop="createdAt" width="180">
         <template slot-scope="scope">
-          <span>{{ parseTime(scope.row.createdAt, '{y}-{m}-{d}') }}</span>
+          <span>{{ parseTime(scope.row.createdAt, '{y}-{m}-{d} {h}:{i}:{s}') }}</span>
         </template>
       </el-table-column>
       <el-table-column label="更新时间" align="center" prop="updatedAt" width="180">
         <template slot-scope="scope">
-          <span>{{ parseTime(scope.row.updatedAt, '{y}-{m}-{d}') }}</span>
+          <span>{{ parseTime(scope.row.updatedAt, '{y}-{m}-{d} {h}:{i}:{s}') }}</span>
         </template>
       </el-table-column>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
