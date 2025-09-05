@@ -15,6 +15,39 @@
       </el-form-item>
     </el-form>
 
+<!-- 城市 -->
+<el-form :model="queryParams" ref="queryForm" size="small" :inline="true" v-show="showSearch" label-width="68px">
+      <el-form-item label="城市" prop="cityName">
+        <el-input
+          v-model="queryParams.cityName"
+          placeholder="请输入城市名称"
+          clearable
+          @keyup.enter.native="handleQuery"
+        />
+      </el-form-item>
+      <el-form-item>
+        <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
+        <el-button icon="el-icon-refresh" size="mini" @click="resetQuery">重置</el-button>
+      </el-form-item>
+    </el-form>
+<!-- 地址 -->
+<el-form :model="queryParams" ref="a" size="small" :inline="true" v-show="showSearch" label-width="68px">
+      <el-form-item label="地址名称" prop="addressName">
+        <el-input
+          v-model="queryParams.addressName"
+          placeholder="请输入地址名称"
+          clearable
+          @keyup.enter.native="handleQuery"
+        />
+      </el-form-item>
+      <el-form-item>
+        <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
+        <el-button icon="el-icon-refresh" size="mini" @click="resetQuery">重置</el-button>
+      </el-form-item>
+    </el-form>
+
+
+
     <el-row :gutter="10" class="mb8">
       <el-col :span="1.5">
         <el-button
@@ -238,7 +271,9 @@ export default {
       queryParams: {
         pageNum: 1,
         pageSize: 10,
-        areaName: null
+        areaName: null,
+        cityName: null,   
+        addressName: null 
       },
       // 表单参数
       form: {
